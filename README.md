@@ -35,7 +35,7 @@ Download and install [VirtualBox](https://www.virtualbox.org/wiki/Downloads).
 
 Download and install [Vagrant](http://docs.vagrantup.com/v2/installation/index.html).
 
-To make the initial VM setup and the software provisioning runs faster, install a Vagrant plugin that caches downloaded software packages locally:
+To speed up the VM provisioning process, install a Vagrant plugin that caches downloaded software packages locally:
 
     $ vagrant plugin install vagrant-cachier
 
@@ -71,7 +71,7 @@ Delow the application directory in `apps`, you need to create a `docroot` direct
 
 After each update to your application code, run `rake prov` to have them reflected in the development environment.
 
-You should now be able to access your development website in your browser at "http://localhost:3080".
+You should now be able to access your development website in your browser at [http://localhost:3080](http://localhost:3080).
 
 
 ## Shell login
@@ -88,16 +88,16 @@ Run `rake down` to shut down the virtual server. You can resurrect it at any tim
 
 To completely remove the virtual server and all its contents, use the `rake destroy` command.
 
-CAUTION: The database is only stored within the VM and will be lost during `destroy`. (See "File storage" below.) If you need to preserve the database, be sure to make a backup and put that into one directory you defined in `shared_folders` in the Boxfile.
+CAUTION: The database is only stored within the VM and will be lost during `destroy`. (See "File storage" below.) If you need to preserve the database, be sure to make a backup and put that into one of the directories you defined as `shared_folders` in the Boxfile.
 
 
 # File storage
 
-While Vagrant allows the virtual server access to certain direcotories on the host filesystem (aka your workstation), this shared filesystem is not fast enough to have a satisfying development experience. That's why the current state of your application is copied into the VM at each provisioning run (`rake prov`).
+While Vagrant allows the virtual server to access certain directories on the host filesystem (i.e. your workstation), this shared filesystem is just not fast enough to achieve a satisfying development experience. That's why freistilbox Solo copies the current state of your application into the VM at each provisioning run (`rake prov`).
 
 **When the VM is removed (aka "destroyed"), these files will be lost.**
 
-The only exception are the directories declared as `shared_folders` in your application's `Boxfile`. These directories are connected to the shared filesystem stored on your workstation.
+The only exception are those directories that are declared as `shared_folders` in your application's `Boxfile`. These directories are connected to the shared filesystem stored on your workstation.
 
 **You need to make sure that your workstation allows write access for these directories to the VM.**
 
@@ -108,9 +108,9 @@ Taking Drupal as an example:
 
 # Documentation and support
 
-We're working on detailed documentation for freistilbox Solo that will be published to our [freistilbox documentation website](http://docs.freistilbox.com).
+We're working on a more detailed documentation for freistilbox Solo that will be published to our [freistilbox documentation website](http://docs.freistilbox.com).
 
-If you have a question or some feedback on using freistilbox Solo, please post it in our [freistilbox Solo community forum](https://freistil.zendesk.com/forums/22231131) on the freistil IT Help Center!
+If you have a question or some feedback on using freistilbox Solo, please post it to our [freistilbox Solo community forum](https://freistil.zendesk.com/forums/22231131) on the freistil IT Help Center!
 
 
 # Copyright and license
