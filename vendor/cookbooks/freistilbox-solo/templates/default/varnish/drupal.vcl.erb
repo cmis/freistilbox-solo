@@ -1,0 +1,221 @@
+backend localhost {
+  .host = "<%= node['varnish']['backend_host'] %>";
+  .port = "<%= node['varnish']['backend_port'] %>";
+  .connect_timeout = 1s;
+  .first_byte_timeout = 600s;
+  .between_bytes_timeout = 600s;
+}
+
+director lb random {
+  {
+    .backend = localhost;
+    .weight = 1;
+  }
+}
+
+// Clients that are allowed to purge cache content
+acl purge {
+  "localhost";
+  "127.0.0.1";
+}
+
+sub vcl_recv {
+
+  # Use the lb director
+  set req.backend = lb;
+
+  // Add original client IP address to request headers
+  if (!req.http.X-Forwarded-For) {
+    set req.http.X-Forwarded-For = client.ip;
+  }
+
+  // Allow the backend to serve up stale content if it is responding slowly.
+  set req.grace = 1h;
+  // Use anonymous, cached pages if all backends are down.
+  if (!req.backend.healthy) {
+    unset req.http.Cookie;
+  }
+
+  // Force pass if the request is a no-cache request from the client
+  if (req.http.Cache-Control ~ "no-cache") {
+    return(pass);
+  }
+
+  // Handle cache PURGE requests
+  if (req.request == "PURGE") {
+    // Reject non-allowed hosts
+    if (! client.ip ~ purge) {
+      error 405 "Not allowed.";
+    }
+    // Purge objects from cache that match the incoming url and host
+    ban("req.url == " + req.url + " && req.http.host == " + req.http.host);
+    error 200 "Purged.";
+  }
+
+  // From here on, we only deal with GET and HEAD
+  if (req.request != "GET" && req.request != "HEAD") {
+    return(pass);
+  }
+
+  // Don't cache these paths
+  if (req.url ~ "^/status\.php$" ||
+    req.url ~ "^/update\.php$" ||
+    req.url ~ "^/install\.php$" ||
+    req.url ~ "^/cron\.php$" ||
+    req.url ~ "^/server-status$" ||
+    req.url ~ "^/ooyala/ping$" ||
+    req.url ~ "^/admin/build/features" ||
+    req.url ~ "^/info/" ||
+    req.url ~ "^/flag/" ||
+    req.url ~ "^/filefield/progress/" ||
+    req.url ~ "^/system/files" ||
+    req.url ~ "^/ajaxblocks" ||
+    req.url ~ "^/poll/ajax/" ||
+    req.url ~ "/ajax/" ||
+    req.url ~ "/ahah/" ||
+    req.url ~ "/no_varnish/") {
+    return(pass);
+  }
+    
+  // Pipe these requests directly to Apache for streaming
+  if (
+    req.url ~ "^/admin/content/backup_migrate/export" ||
+    req.url ~ "\.(mp3|flv|mov|mp4|mpg|mpeg|avi|dmg|3gp|m4v|ogg|ogv|mov|rm)(\?[a-z0-9]*)?$"
+  ) {
+    return(pipe);
+  }
+
+  // *** Cookie cleanup
+  // Remove all cookies that Drupal doesn't need to know about. 
+  // ANY remaining cookie will cause the request to pass-through
+  // to Apache. For the most part we always set the NO_CACHE cookie 
+  // after any POST request, disabling the Varnish cache temporarily.
+  // The session cookie allows all authenticated users to pass through
+  // as long as they're logged in.
+  if (req.http.Cookie) {
+    set req.http.Cookie = ";" + req.http.Cookie;
+    set req.http.Cookie = regsuball(req.http.Cookie, "; +", ";");
+    set req.http.Cookie = regsuball(req.http.Cookie, ";(SESS[a-z0-9]+|session_api_session|NO_CACHE)=", "; \1=");
+    set req.http.Cookie = regsuball(req.http.Cookie, ";[^ ][^;]*", "");
+    set req.http.Cookie = regsuball(req.http.Cookie, "^[; ]+|[; ]+$", "");
+    if (req.http.Cookie == "") {
+      // remove empty cookie
+      unset req.http.Cookie;
+    }
+  }
+        
+  // Always cache the following file types.
+  if (req.url ~ "(?i)\.(png|gif|jpeg|jpg|ico|swf|css|js)(\?[a-z0-9]*)?$") {
+    unset req.http.Cookie;
+  }
+    
+  // Always cache asset files.
+  if (req.url ~ "^/sites/[^/]+/files/") {
+    unset req.http.Cookie;
+  }
+
+  // Still a cookie left? Probably in a session, so don't cache.
+  if (req.http.Cookie) {
+    return(pass);
+  }
+
+  // Handle compression correctly. Different browsers send different
+  // "Accept-Encoding" headers, even though they mostly all support the same
+  // compression mechanisms. By consolidating these compression headers into
+  // a consistent format, we can reduce the size of the cache and get more hits.
+  // @see: http:// varnish.projects.linpro.no/wiki/FAQ/Compression
+  if (req.http.Accept-Encoding) {
+    if (req.http.Accept-Encoding ~ "gzip") {
+      // If the browser supports it, we'll use gzip.
+      set req.http.Accept-Encoding = "gzip";
+    }
+    else if (req.http.Accept-Encoding ~ "deflate") {
+      // Next, try deflate if it is supported.
+      set req.http.Accept-Encoding = "deflate";
+    }
+    else {
+      // Unknown algorithm. Remove it and send unencoded.
+      unset req.http.Accept-Encoding;
+    }
+  }
+    
+  // *** Do cache lookup
+  return(lookup);
+}
+
+sub vcl_hash {
+  # Handle SSL offloading
+  if (req.http.X-Forwarded-Proto) {
+    hash_data(req.http.X-Forwarded-Proto);
+  }
+}
+
+sub vcl_fetch {
+
+  // Grace to allow varnish to serve content if backend is lagged
+  set beresp.grace = 1h;
+
+  // *** Remove eventual new session cookies
+  // sent because a static file request (whose cookie got unset in vcl_req)
+  // caused a 404 in Drupal
+  // Don't send a new cookie for static content
+  if (req.url ~ "(?i)\.(png|gif|jpeg|jpg|ico|swf|css|js)(\?[a-z0-9]+)?$") {
+    unset beresp.http.Set-Cookie;
+  }
+  // Don't send a new cookie for asset files
+  if (req.url ~ "^/sites/[^/]+/files/") {
+    unset beresp.http.Set-Cookie;
+  }
+
+  // *** Only cache cacheable content
+  // These status codes should always pass through and never cache.
+  if (beresp.status >= 400 && beresp.status <= 599) {
+    set beresp.http.X-Varnish-Cacheable = "NO (HTTP status)";
+  }
+  // Item is cacheable but TTL=0
+  elsif (beresp.ttl == 0s) {
+    set beresp.http.X-Varnish-Cacheable = "NO (TTL=0)";
+  }
+
+  // Item is cacheable
+  else {
+    set beresp.http.X-Varnish-Cacheable = "YES";
+  }   
+  return(deliver);
+}
+
+sub vcl_deliver {
+
+  // Add cache hit data
+  if (obj.hits > 0) {
+    set resp.http.X-Varnish-Cache = "HIT";
+    set resp.http.X-Varnish-Cache-Hits = obj.hits;
+  } else {
+    set resp.http.X-Varnish-Cache = "MISS";
+  }
+
+}
+
+sub vcl_error {
+  set obj.http.Content-Type = "text/html; charset=utf-8";
+  set obj.http.Retry-After = "5";
+  synthetic {"
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <title>"} + obj.status + " " + obj.response + {"</title>
+  </head>
+  <body>
+    <h1>Error "} + obj.status + " " + obj.response + {"</h1>
+    <p>"} + obj.response + {"</p>
+    <h3>Internals:</h3>
+    <p>XID: "} + req.xid + {"</p>
+    <hr>
+    <p><em>Varnish cache server</em></p>
+  </body>
+</html>
+"};
+  return (deliver);
+}

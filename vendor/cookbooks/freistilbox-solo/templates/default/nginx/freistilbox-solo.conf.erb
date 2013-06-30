@@ -1,0 +1,38 @@
+client_body_buffer_size 5m;
+client_max_body_size 100m;
+client_header_buffer_size 2k;
+large_client_header_buffers 4 8k;
+
+client_body_timeout   60;
+client_header_timeout 60;
+send_timeout          60;
+
+#
+# HTTP proxy freistilbox-solo
+#
+
+upstream freistilbox-solo_backend {
+  server 127.0.0.1:81;
+}
+
+server {
+  listen 80;
+  server_name freistilbox-solo;
+
+  proxy_intercept_errors on;
+  proxy_buffering on;
+  proxy_buffer_size 128k;
+  proxy_buffers 256 16k;
+  proxy_busy_buffers_size 256k;
+  proxy_temp_file_write_size 256k;
+  proxy_max_temp_file_size 0;
+  proxy_send_timeout 300s;
+  proxy_read_timeout 300s;
+
+  location / {
+    proxy_pass http://freistilbox-solo_backend;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+}

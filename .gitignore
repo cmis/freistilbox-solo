@@ -1,0 +1,4 @@
+/.vagrant
+/tmp
+/apps/*
+!/apps/example/

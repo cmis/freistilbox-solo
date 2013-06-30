@@ -1,0 +1,12 @@
+version: 1.0
+shared_folders:
+  - sites/default/files
+env_specific_files:
+  .htaccess:
+    production: .htaccess.production
+    test: .htaccess.test
+    solo: .htaccess.solo
+  sites/default/settings.php:
+    production: settings.production.php
+    test: settings.test.php
+    solo: settings.solo.php

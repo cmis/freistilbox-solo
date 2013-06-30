@@ -1,0 +1,49 @@
+#
+# freistilbox solo : localhost
+#
+
+<VirtualHost *:82>
+    ServerName localhost
+
+    DocumentRoot <%= @docroot %>
+
+    ErrorLog "|/usr/bin/cronolog <%= @approot %>/logs/%Y/%m/error.%Y.%m.log"
+    CustomLog "|/usr/bin/cronolog <%= @approot %>/logs/%Y/%m/access.%Y.%m.%d.log" pcombined
+
+    DirectoryIndex index.php index.html
+
+    # PHP
+    <IfModule mod_php5.c>
+        AddType application/x-httpd-php .php .php5
+        php_admin_value upload_tmp_dir /tmp
+        php_admin_value open_basedir <%= @approot %>/app:/vagrant/apps:/usr/share/php5:/usr/share/php:/usr/share/pear:/usr/bin:/usr/local/bin:/tmp
+    </IfModule>
+
+    # Redirect alias domains
+    <IfModule mod_rewrite.c>
+        RewriteEngine on
+    </IfModule>
+
+    # Permissions for document root
+    <Directory <%= @docroot %>>
+        Options FollowSymLinks
+        AllowOverride All
+        Order Allow,Deny
+        Allow from all
+    </Directory>
+
+    # Cache TTL
+    <IfModule mod_expires.c>
+        ExpiresActive On
+        ## default: 4h
+        ExpiresDefault A14400
+        ## text/html: 15min
+        ExpiresByType text/html A900
+    </IfModule>
+
+    # Set server variable with staging environment name
+    SetEnv SITEENV solo
+
+    # Set server variable if request came over SSL offloader
+    SetEnvIf X-Forwarded-Proto https HTTPS=on
+</VirtualHost>
