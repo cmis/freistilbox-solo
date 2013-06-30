@@ -88,7 +88,7 @@ Run `rake down` to shut down the virtual server. You can resurrect it at any tim
 
 To completely remove the virtual server and all its contents, use the `rake destroy` command.
 
-CAUTION: The database is only stored within the VM and will be lost during `destroy`. (See "File storage" below.) If you need to preserve the database, be sure to make a backup and put that into the `shared_
+CAUTION: The database is only stored within the VM and will be lost during `destroy`. (See "File storage" below.) If you need to preserve the database, be sure to make a backup and put that into one directory you defined in `shared_folders` in the Boxfile.
 
 
 # File storage
