@@ -33,7 +33,7 @@ Download and install [VirtualBox](https://www.virtualbox.org/wiki/Downloads).
 
 ## Vagrant
 
-Download and install [Vagrant](http://docs.vagrantup.com/v2/installation/index.html).
+Download and install [Vagrant](http://docs.vagrantup.com/v2/installation/index.html), version 1.2.x and up.
 
 To speed up the VM provisioning process, install a Vagrant plugin that caches downloaded software packages locally:
 
