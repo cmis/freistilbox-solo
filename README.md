@@ -110,6 +110,8 @@ Taking Drupal as an example:
 
 You can find detailed documentation for freistilbox Solo on our [freistilbox documentation website](http://docs.freistilbox.com/solo/).
 
+When you encounter an error or freistilbox Solo fails to work in any way, please [open an issue](https://github.com/freistil/freistilbox-solo/issues) on the Github repository.
+
 If you have any question or feedback on using freistilbox Solo, please post it in our [freistilbox Solo community forum](https://freistil.zendesk.com/forums/22231131) on the freistil IT Help Center!
 
 
