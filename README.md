@@ -108,9 +108,9 @@ Taking Drupal as an example:
 
 # Documentation and support
 
-We're working on detailed documentation for freistilbox Solo that will be published to our [freistilbox documentation website](http://docs.freistilbox.com).
+You can find detailed documentation for freistilbox Solo on our [freistilbox documentation website](http://docs.freistilbox.com/solo/).
 
-If you have a question or some feedback on using freistilbox Solo, please post it in our [freistilbox Solo community forum](https://freistil.zendesk.com/forums/22231131) on the freistil IT Help Center!
+If you have any question or feedback on using freistilbox Solo, please post it in our [freistilbox Solo community forum](https://freistil.zendesk.com/forums/22231131) on the freistil IT Help Center!
 
 
 # Copyright and license
