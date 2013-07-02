@@ -1,3 +1,7 @@
+# Version 1.0.1, 2013-07-02
+
+Fix for ISSUE-1: Broken not_if condition in deploy recipe.
+
 # Version 1.0.0, 2013-06-30
 
 Initial release for Drupal Dev Days Dublin!

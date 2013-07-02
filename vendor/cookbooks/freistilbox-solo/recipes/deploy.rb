@@ -78,7 +78,7 @@ if boxfile
         end
       end
     end
-    not_if envspecific_files.nil? || envspecific_files.empty?
+    not_if { envspecific_files.nil? || envspecific_files.empty? }
   end
 
 end
